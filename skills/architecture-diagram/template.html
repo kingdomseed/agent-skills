@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture diagram</title>
+<style>
+:root {
+  --paper: #d8d0b0;
+  --paper-2: #cfc6a4;
+  --ink: #1a1912;
+  --muted: #5c5848;
+  --inv: #efe8cc;
+  --rust: #7a2e1c;
+  --ok: #2a4a32;
+  --side: 248px;
+  --insp: 318px;
+  --top: 42px;
+  --foot: 28px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--paper); color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px; line-height: 1.4; overflow: hidden; user-select: none; }
+body {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(26,25,18,.035) 3px, rgba(26,25,18,.035) 4px);
+}
+#app { display: grid; height: 100%;
+  grid-template-columns: var(--side) 1fr var(--insp);
+  grid-template-rows: var(--top) 1fr var(--foot); }
+#stats { grid-column: 1 / -1; display: flex; align-items: stretch; border-bottom: 1px solid var(--ink); background: var(--paper); }
+#stats .cell { display: flex; align-items: center; gap: 8px; padding: 0 12px; border-right: 1px solid var(--ink); }
+#stats .k { font-variant: small-caps; letter-spacing: .1em; font-size: 10px; color: var(--muted); }
+#stats .v { font-variant: small-caps; letter-spacing: .06em; font-size: 12px; }
+#stats .grow { flex: 1; }
+#mode, #ctrls { display: flex; }
+#ctrls { margin-left: auto; }
+#mode button, #ctrls button, .zbtn {
+  background: var(--paper); color: var(--ink); border: 0; border-right: 1px solid var(--ink);
+  font: inherit; font-variant: small-caps; letter-spacing: .1em; padding: 0 14px; cursor: pointer; height: 100%; }
+#ctrls button { border-left: 1px solid var(--ink); border-right: 0; }
+#mode button.on, #ctrls button.on, .zbtn:hover,
+#mode button:hover, #ctrls button:hover { background: var(--ink); color: var(--inv); }
+#side { border-right: 1px solid var(--ink); overflow: auto; padding: 8px 0 16px; background: var(--paper); }
+#side h2 { font-variant: small-caps; letter-spacing: .14em; font-size: 10px; font-weight: 400;
+  padding: 10px 10px 4px; color: var(--muted); }
+.si { display: flex; align-items: center; margin: 2px 8px; border: 1px solid var(--ink);
+  min-height: 22px; cursor: pointer; padding: 0 6px 0 0; }
+.si .tag { width: 18px; text-align: center; border-right: 1px solid var(--ink); font-size: 10px;
+  font-variant: small-caps; margin-right: 6px; align-self: stretch; display: flex; align-items: center; justify-content: center; }
+.si .nm { flex: 1; font-variant: small-caps; letter-spacing: .06em; font-size: 11px; white-space: nowrap; overflow: hidden; }
+.si .n { font-size: 10px; color: var(--muted); }
+.si.on { background: var(--ink); color: var(--inv); }
+.si.on .n { color: var(--inv); }
+#stagewrap { position: relative; overflow: hidden; background: var(--paper-2); }
+#stage { width: 100%; height: 100%; display: block; cursor: grab; }
+#stage.drag { cursor: grabbing; }
+#zooms { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; border: 1px solid var(--ink); }
+.zbtn { height: 26px; width: 26px; border: 0; border-bottom: 1px solid var(--ink); padding: 0; font-size: 14px; }
+.zbtn:last-child { border-bottom: 0; }
+#insp { border-left: 1px solid var(--ink); display: flex; flex-direction: column; background: var(--paper); min-width: 0; }
+#tabs { display: flex; border-bottom: 1px solid var(--ink); height: 32px; flex-shrink: 0; }
+#tabs button { flex: 1; background: transparent; border: 0; border-right: 1px solid var(--ink);
+  font: inherit; font-variant: small-caps; letter-spacing: .08em; font-size: 10px; cursor: pointer; color: var(--ink); }
+#tabs button:last-child { border-right: 0; }
+#tabs button.on { background: var(--ink); color: var(--inv); }
+#ibody { flex: 1; overflow: auto; padding: 12px 12px 20px; user-select: text; }
+#ibody h3 { font-variant: small-caps; letter-spacing: .12em; font-size: 10px; font-weight: 400;
+  margin: 12px 0 6px; color: var(--muted); }
+#ibody h3:first-child { margin-top: 0; }
+#ibody p { margin: 0 0 8px; font-size: 12px; }
+#ibody .path { font-size: 10px; color: var(--muted); word-break: break-all; margin-bottom: 6px; }
+#ibody ul { margin: 0 0 8px 16px; }
+#ibody li { margin: 0 0 4px; }
+mark { background: var(--ink); color: var(--inv); padding: 0 3px 1px; font-style: normal; }
+.flag { border: 1px solid var(--rust); color: var(--rust); padding: 6px 8px; margin: 8px 0; font-size: 11px; }
+.ok { border: 1px solid var(--ok); color: var(--ok); padding: 6px 8px; margin: 8px 0; font-size: 11px; }
+.kv { display: grid; grid-template-columns: 88px 1fr; gap: 3px 8px; margin: 8px 0; font-size: 11px; }
+.kv .k { color: var(--muted); font-variant: small-caps; letter-spacing: .06em; }
+#foot { grid-column: 1 / -1; border-top: 1px solid var(--ink); display: flex; align-items: center;
+  justify-content: center; gap: 22px; font-variant: small-caps; letter-spacing: .12em; font-size: 10px; }
+#tip { position: fixed; display: none; pointer-events: none; background: var(--ink); color: var(--inv);
+  padding: 3px 7px; font-size: 11px; z-index: 9; max-width: 280px; }
+#qledger { border-bottom: 1px solid var(--ink); padding: 8px 10px; max-height: 28%; overflow: auto; flex-shrink: 0; }
+#qledger h2 { font-variant: small-caps; letter-spacing: .14em; font-size: 10px; font-weight: 400;
+  color: var(--muted); margin: 0 0 6px; }
+.qi { border: 1px solid var(--ink); margin: 0 0 6px; padding: 6px 8px; font-size: 11px; cursor: pointer; }
+.qi.open { border-color: var(--rust); }
+.qi.on { background: var(--ink); color: var(--inv); }
+.qi .st { font-variant: small-caps; letter-spacing: .08em; font-size: 10px; color: var(--muted); }
+.qi.on .st { color: var(--inv); }
+#chapters { display: none; }
+#chLabel { display: flex; align-items: center; padding: 0 10px; font-variant: small-caps;
+  letter-spacing: .08em; font-size: 10px; border-right: 1px solid var(--ink); white-space: nowrap; }
+#insidebar { display: none; }
+#insideCrumb { display: flex; align-items: center; padding: 0 10px; font-variant: small-caps;
+  letter-spacing: .08em; font-size: 10px; border-right: 1px solid var(--ink); white-space: nowrap; }
+#ibody button.goin {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--ink);
+  font: inherit; font-variant: small-caps; letter-spacing: .1em;
+  padding: 5px 10px; cursor: pointer; margin: 8px 0 0; }
+#ibody button.goin:hover { background: var(--ink); color: var(--inv); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="stats">
+    <div id="statCells" class="grow" style="display:flex;align-items:stretch;min-width:0;"></div>
+    <div id="mode">
+      <button type="button" id="btnCur" class="on">Current</button>
+      <button type="button" id="btnTgt">Target</button>
+    </div>
+    <div id="chapters">
+      <button type="button" id="btnChPrev">Prev</button>
+      <span id="chLabel"></span>
+      <button type="button" id="btnChNext">Next</button>
+      <button type="button" id="btnChAll">Show all</button>
+    </div>
+    <div id="insidebar">
+      <button type="button" id="btnInsideBack">Back</button>
+      <span id="insideCrumb"></span>
+    </div>
+    <div id="ctrls">
+      <button type="button" id="btnFlow">Hold the flow</button>
+      <button type="button" id="btnStep">Trace one step</button>
+      <button type="button" id="btnReset">Reset view</button>
+    </div>
+  </header>
+  <aside id="side"></aside>
+  <div id="stagewrap">
+    <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="zooms">
+      <button type="button" class="zbtn" id="zIn">+</button>
+      <button type="button" class="zbtn" id="zOut">-</button>
+    </div>
+  </div>
+  <aside id="insp">
+    <div id="qledger"></div>
+    <div id="tabs">
+      <button type="button" id="tabWhat" class="on">What it does</button>
+      <button type="button" id="tabHow">How it's built</button>
+    </div>
+    <div id="ibody"></div>
+  </aside>
+  <footer id="foot">
+    <span>Scroll to zoom</span>
+    <span>Drag to pan</span>
+    <span>Hover to read</span>
+    <span>Click a box, edge, or packet</span>
+    <span>Current / Target swaps the graph</span>
+    <span id="footHint">Go inside a box to watch it run</span>
+  </footer>
+</div>
+<div id="tip"></div>
+<script>
+(function () {
+"use strict";
+
+/* ==== FILL FROM GROUNDED FACTS. Do not edit below LAYOUT. ==== */
+
+var SLICE = {
+  title: "Template sample",
+  states: ["current"],
+  layers: ["presentation", "domain", "data", "platform"]
+};
+
+var LAYER_LABEL = {
+  presentation: "Presentation",
+  application: "Application",
+  domain: "Domain",
+  data: "Data",
+  platform: "Storage / platform"
+};
+
+var STATS = [
+  { k: "Nodes", v: "4 scaffold" },
+  { k: "Questions", v: "1 open, 1 resolved" }
+];
+
+var OWNERS = [
+  { id: "sample", label: "Sample" }
+];
+
+/* cur / tgt: {} present, {dx, dy} nudge inside the cell, {ghost:true} demolished, null absent */
+var NODES = [
+  { id: "sampleUi", kind: "widget", tag: "W", label: "Sample widget", layer: "presentation", owner: "sample",
+    w: 150, h: 40, d: 10, cur: {}, tgt: null, tip: "Scaffold. Overwrite for a real slice." },
+  { id: "sampleRepo", kind: "repo", tag: "R", label: "Sample repository", layer: "domain", owner: "sample",
+    w: 168, h: 40, d: 10, cur: {}, tgt: null, tip: "Scaffold. Overwrite for a real slice.",
+    inside: {
+      stages: [
+        { id: "st-acquire", label: "Acquire",
+          what: "Holders 0→1. A subscription keeps the gate alive for this write." },
+        { id: "st-run", label: "Run",
+          what: "The queued write runs. Holders stay 1." },
+        { id: "st-release", label: "Release",
+          what: "Holders 1→0. The subscription ends when the queue is empty." }
+      ]
+    },
+    insidePackets: [
+      { id: "p-inside-seed", key: "seedLanguage", value: "en",
+        hops: ["st-acquire", "st-run", "st-release"],
+        hopNames: ["Acquire", "Run", "Release"],
+        legalNow: true, legalTgt: true,
+        note: "Scaffold gate packet. A real slice uses the actual write payload.",
+        source: "template.html FILL sample" }
+    ]
+  },
+  { id: "sampleImpl", kind: "data", tag: "A", label: "Sample implementation", layer: "data", owner: "sample",
+    w: 178, h: 40, d: 10, cur: {}, tgt: null, tip: "Scaffold. Overwrite for a real slice." },
+  { id: "sampleDisk", kind: "disk", tag: "D", label: "Sample store", layer: "platform", owner: "sample",
+    w: 150, h: 40, d: 10, cur: {}, tgt: null, tip: "Scaffold. Overwrite for a real slice." }
+];
+
+/* kind: write | compose | invalidate | read | implements. classifyEdge is the last word. */
+var EDGES = [
+  { a: "sampleUi", b: "sampleRepo", kind: "write", modes: ["current"], source: "template.html FILL sample" },
+  { a: "sampleRepo", b: "sampleImpl", kind: "write", modes: ["current"], source: "template.html FILL sample" },
+  { a: "sampleImpl", b: "sampleDisk", kind: "write", modes: ["current"], source: "template.html FILL sample" }
+];
+
+/* 3-5 per state. hops are node ids. each hop pair must be a drawn edge. */
+var PACKETS = {
+  current: [
+    { id: "p-sample", key: "sample_key", value: "true", hops: ["sampleUi", "sampleRepo", "sampleImpl", "sampleDisk"],
+      hopNames: ["Sample widget", "Sample repository", "Sample implementation", "Sample store"],
+      legalNow: true, legalTgt: true, note: "Scaffold packet. Overwrite for a real slice.",
+      source: "template.html FILL sample" }
+  ],
+  target: []
+};
+
+/* id: { what, how, source, cond: [] } */
+var COPY = {
+  sampleUi: {
+    what: "Scaffold Presentation node so the first chapter can hide later hops.",
+    how: "`template.html` FILL sample. 0 production lines.",
+    source: "template.html FILL sample",
+    cond: []
+  },
+  sampleRepo: {
+    what: "Scaffold Domain contract. Go inside to watch the serialization-gate sample run.",
+    how: "`template.html` FILL sample. 0 production lines.",
+    source: "template.html FILL sample",
+    cond: []
+  },
+  sampleImpl: {
+    what: "Scaffold Data implementation. Hidden in chapter 1.",
+    how: "`template.html` FILL sample. 0 production lines.",
+    source: "template.html FILL sample",
+    cond: []
+  },
+  sampleDisk: {
+    what: "Scaffold Storage / platform node. Hidden in chapter 1, shown in chapter 2.",
+    how: "`template.html` FILL sample. 0 production lines.",
+    source: "template.html FILL sample",
+    cond: []
+  }
+};
+
+var SIDE = { current: [], target: [] };
+
+var OVERVIEW = {
+  what: "Scaffold FILL so the Questions panel, chapter controls, and markdown twin can be proven. Overwrite for a real slice.",
+  how: "Bands stay fixed. Chapter 1 shows the write path. Chapter 2 adds the store. Open the repository box to watch the gate stages run."
+};
+
+/* id, question, status: open|resolved, answer, decidedOn (ISO date or "") */
+var QUESTIONS = [
+  { id: "q-sample-open", question: "Which feature owns the first real write in this slice?",
+    status: "open", answer: "", decidedOn: "" },
+  { id: "q-sample-resolved", question: "Is Application a required band?",
+    status: "resolved",
+    answer: "No. Include Application only when the slice has Application types.",
+    decidedOn: "2026-08-23" }
+];
+
+/* omit or [] on small slices. { id, caption, nodes } */
+var CHAPTERS = [
+  { id: "ch-write", caption: "Write path", nodes: ["sampleUi", "sampleRepo"] },
+  { id: "ch-persist", caption: "Persist", nodes: ["sampleRepo", "sampleImpl", "sampleDisk"] }
+];
+
+/* ==== LAYOUT ==== */
+
+var NS = "http://www.w3.org/2000/svg";
+var HEAD_H = 36, BAND_H = 190, COL_W = 220, ORIGIN_X = 120, ORIGIN_Y = 24;
+var cam = { x: 0, y: 0, k: 1 };
+var mode = "current";
+var tab = "what";
+var selected = null;
+var flowOn = true;
+var pinnedPacket = null;
+var chapterIdx = 0;
+var showAllChapters = false;
+var insideOf = null;
+var savedCam = null;
+var nodes = {};
+var sceneMap = {};
+var live = [];
+var svg, world, gBands, gEdges, gNodes, gDots;
+var drag = { on: false, moved: false, lx: 0, ly: 0 };
+
+function el(tag, attrs, parent) {
+  var n = document.createElementNS(NS, tag);
+  if (attrs) Object.keys(attrs).forEach(function (k) {
+    if (k === "text") n.textContent = attrs[k];
+    else if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+  });
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function mark(s) {
+  return String(s).replace(/`([^`]+)`/g, "<mark>$1</mark>");
+}
+
+function layerIndex(id) { return SLICE.layers.indexOf(id); }
+
+function ownerIndex(id) {
+  for (var i = 0; i < OWNERS.length; i++) if (OWNERS[i].id === id) return i;
+  return 0;
+}
+
+function colCount() { return Math.max(OWNERS.length, 1); }
+
+function sceneW() {
+  var inn = insideSpec();
+  if (isStages(inn)) return Math.max(inn.stages.length * 200 + 40, 280);
+  return colCount() * COL_W + 40;
+}
+
+function sceneH() {
+  if (isStages(insideSpec())) return HEAD_H + 180;
+  return HEAD_H + SLICE.layers.length * BAND_H + 20;
+}
+
+function statePos(n) { return mode === "current" ? n.cur : n.tgt; }
+
+function hostNode() { return insideOf ? nodes[insideOf] : null; }
+
+function insideSpec() {
+  var n = hostNode();
+  return (n && n.inside) || null;
+}
+
+function isStages(inn) { return !!(inn && inn.stages && inn.stages.length); }
+
+function isMini(inn) { return !!(inn && inn.nodes && inn.nodes.length); }
+
+function stageNodes(inn) {
+  return inn.stages.map(function (s, i) {
+    return {
+      id: s.id, kind: "stage", tag: String(i + 1), label: s.label,
+      layer: "process", owner: "inside", w: 150, h: 48, d: 8,
+      cur: {}, tgt: {}, tip: s.what, _stageIndex: i
+    };
+  });
+}
+
+function stageEdges(inn) {
+  var out = [], i;
+  for (i = 0; i < inn.stages.length - 1; i++) {
+    out.push({
+      a: inn.stages[i].id, b: inn.stages[i + 1].id,
+      kind: "write", modes: SLICE.states, source: "inside stages"
+    });
+  }
+  return out;
+}
+
+function sceneNodeList() {
+  var inn = insideSpec();
+  if (!inn) return NODES;
+  if (isStages(inn)) return stageNodes(inn);
+  inn.nodes.forEach(function (n) {
+    if (n.cur === undefined) n.cur = {};
+    if (n.tgt === undefined) n.tgt = {};
+  });
+  return inn.nodes;
+}
+
+function sceneEdgeList() {
+  var inn = insideSpec();
+  if (!inn) return EDGES;
+  if (isStages(inn)) return stageEdges(inn);
+  return inn.edges || [];
+}
+
+function scenePacketList() {
+  var n = hostNode();
+  if (!n) return PACKETS[mode] || [];
+  return n.insidePackets || [];
+}
+
+function bootScene() {
+  sceneMap = {};
+  sceneNodeList().forEach(function (n) { sceneMap[n.id] = n; });
+}
+
+function sceneLookup(id) { return sceneMap[id] || nodes[id]; }
+
+function chapterList() {
+  return (typeof CHAPTERS !== "undefined" && CHAPTERS) ? CHAPTERS : [];
+}
+
+function hasChapters() { return chapterList().length > 0; }
+
+function chapterNodeSet() {
+  if (!hasChapters() || showAllChapters) return null;
+  var ch = CHAPTERS[chapterIdx] || CHAPTERS[0];
+  var set = {}, i;
+  var ids = (ch && ch.nodes) || [];
+  for (i = 0; i < ids.length; i++) set[ids[i]] = true;
+  return set;
+}
+
+function inChapter(id) {
+  var set = chapterNodeSet();
+  return !set || !!set[id];
+}
+
+function visible(n) {
+  if (!n) return false;
+  if (insideOf) return statePos(n) != null;
+  return statePos(n) != null && inChapter(n.id);
+}
+
+function posOf(n) {
+  var inn = insideSpec();
+  if (isStages(inn)) {
+    var i = n._stageIndex, j, sts = inn.stages;
+    if (i == null) {
+      for (j = 0; j < sts.length; j++) if (sts[j].id === n.id) { i = j; break; }
+    }
+    if (i == null) return null;
+    return { x: ORIGIN_X + 90 + i * 200, y: ORIGIN_Y + HEAD_H + 95, ghost: false };
+  }
+  var p = statePos(n);
+  if (!p) return null;
+  return {
+    x: ORIGIN_X + ownerIndex(n.owner) * COL_W + COL_W / 2 + (p.dx || 0),
+    y: ORIGIN_Y + HEAD_H + layerIndex(n.layer) * BAND_H + BAND_H / 2 + (p.dy || 0),
+    ghost: !!p.ghost
+  };
+}
+
+function bootNodes() {
+  nodes = {};
+  NODES.forEach(function (n) { nodes[n.id] = n; });
+}
+
+function hasEdge(a, b) {
+  var list = sceneEdgeList(), i, e;
+  for (i = 0; i < list.length; i++) {
+    e = list[i];
+    if (e.a === a && e.b === b && edgeInMode(e)) return true;
+  }
+  return false;
+}
+
+function edgeInMode(e) {
+  var modes = e.modes || SLICE.states;
+  return modes.indexOf(mode) >= 0;
+}
+
+function classifyEdge(e) {
+  var a = sceneLookup(e.a), b = sceneLookup(e.b);
+  if (!a || !b) return "violation";
+  if (a.kind === "stage" && b.kind === "stage") return "legal";
+  var ia = layerIndex(a.layer), ib = layerIndex(b.layer);
+  if (ia < 0 || ib < 0) return "violation";
+  if (e.kind === "implements") {
+    return (a.layer === "data" && b.layer === "domain") ? "implements" : "violation";
+  }
+  if (e.kind === "invalidate" || e.kind === "read") {
+    return ib < ia ? "invalidate" : "violation";
+  }
+  if (e.kind === "compose") {
+    return ia === ib ? "compose" : "violation";
+  }
+  if (ib === ia + 1) return "legal";
+  if (ib === ia) return "compose";
+  return "violation";
+}
+
+function skippedBands(e) {
+  var a = sceneLookup(e.a), b = sceneLookup(e.b);
+  if (!a || !b) return [];
+  var ia = layerIndex(a.layer), ib = layerIndex(b.layer);
+  var out = [], lo = Math.min(ia, ib), hi = Math.max(ia, ib), i;
+  for (i = lo + 1; i < hi; i++) out.push(SLICE.layers[i]);
+  return out;
+}
+
+function strokeFor(cls) {
+  if (cls === "violation") return { stroke: "#7a2e1c", dash: "", w: 1.8 };
+  if (cls === "invalidate") return { stroke: "#2a4a32", dash: "6 3", w: 1.2 };
+  if (cls === "implements") return { stroke: "#1a1912", dash: "1 3", w: 1.1 };
+  if (cls === "compose") return { stroke: "#1a1912", dash: "3 3", w: 1 };
+  return { stroke: "#1a1912", dash: "", w: 1 };
+}
+
+function attach(n, toward) {
+  var p = posOf(n);
+  var dx = toward.x - p.x, dy = toward.y - p.y;
+  var hw = (n.w || 140) / 2, hh = (n.h || 40) / 2;
+  if (Math.abs(dx / hw) > Math.abs(dy / hh)) {
+    return { x: p.x + (dx > 0 ? hw : -hw), y: p.y };
+  }
+  return { x: p.x, y: p.y + (dy > 0 ? hh : -hh) };
+}
+
+function edgePath(e) {
+  var na = sceneLookup(e.a), nb = sceneLookup(e.b);
+  if (!visible(na) || !visible(nb)) return "";
+  var pa = posOf(na), pb = posOf(nb);
+  var A = attach(na, pb), B = attach(nb, pa);
+  var mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+  if (Math.abs(B.y - A.y) > Math.abs(B.x - A.x)) {
+    return "M " + A.x + " " + A.y + " L " + A.x + " " + my + " L " + B.x + " " + my + " L " + B.x + " " + B.y;
+  }
+  return "M " + A.x + " " + A.y + " L " + mx + " " + A.y + " L " + mx + " " + B.y + " L " + B.x + " " + B.y;
+}
+
+function initSvg() {
+  svg = document.getElementById("stage");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var defs = el("defs", null, svg);
+  var hatch = el("pattern", { id: "hatch", width: "6", height: "6", patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" }, defs);
+  el("path", { d: "M 0 0 V 6", stroke: "#1a1912", "stroke-width": "0.8" }, hatch);
+  world = el("g", { id: "world" }, svg);
+  gBands = el("g", { id: "bands" }, world);
+  gEdges = el("g", { id: "edges" }, world);
+  gNodes = el("g", { id: "nodes" }, world);
+  gDots = el("g", { id: "dots" }, world);
+}
+
+function drawBands() {
+  while (gBands.firstChild) gBands.removeChild(gBands.firstChild);
+  var inn = insideSpec();
+  if (isStages(inn)) {
+    var host = hostNode();
+    el("text", {
+      x: ORIGIN_X, y: ORIGIN_Y + 22, fill: "#5c5848",
+      "font-size": 11, "font-family": "ui-monospace, Menlo, monospace",
+      style: "font-variant: small-caps; letter-spacing: 0.1em;"
+    }, gBands).textContent = "Inside · " + ((host && host.label) || "");
+    el("rect", {
+      x: ORIGIN_X - 20, y: ORIGIN_Y + HEAD_H + 40, width: sceneW() + 40, height: 110,
+      fill: "rgba(26,25,18,0.03)", stroke: "#1a1912", "stroke-width": 0.7
+    }, gBands);
+    return;
+  }
+  var w = sceneW();
+  OWNERS.forEach(function (o, i) {
+    var x = ORIGIN_X + i * COL_W;
+    el("text", {
+      x: x + COL_W / 2, y: ORIGIN_Y + 22, fill: "#5c5848", "text-anchor": "middle",
+      "font-size": 10, "font-family": "ui-monospace, Menlo, monospace",
+      style: "font-variant: small-caps; letter-spacing: 0.1em;"
+    }, gBands).textContent = o.label;
+    el("line", {
+      x1: x, y1: ORIGIN_Y + HEAD_H, x2: x, y2: ORIGIN_Y + HEAD_H + SLICE.layers.length * BAND_H,
+      stroke: "#1a1912", "stroke-width": 0.4, opacity: 0.35
+    }, gBands);
+  });
+  SLICE.layers.forEach(function (id, i) {
+    var y = ORIGIN_Y + HEAD_H + i * BAND_H;
+    el("rect", {
+      x: ORIGIN_X - 96, y: y, width: w + 96, height: BAND_H,
+      fill: i % 2 ? "rgba(26,25,18,0.045)" : "rgba(26,25,18,0.015)",
+      stroke: "#1a1912", "stroke-width": 0.7
+    }, gBands);
+    var t = el("text", {
+      x: ORIGIN_X - 88, y: y + 18, fill: "#1a1912",
+      "font-size": 11, "font-family": "ui-monospace, Menlo, monospace",
+      style: "font-variant: small-caps; letter-spacing: 0.12em;"
+    }, gBands);
+    t.textContent = LAYER_LABEL[id] || id;
+  });
+}
+
+function drawEdges() {
+  while (gEdges.firstChild) gEdges.removeChild(gEdges.firstChild);
+  sceneEdgeList().forEach(function (e, idx) {
+    if (!edgeInMode(e)) return;
+    var d = edgePath(e);
+    if (!d) return;
+    var cls = classifyEdge(e);
+    var s = strokeFor(cls);
+    el("path", {
+      d: d, fill: "none", stroke: s.stroke, "stroke-width": s.w,
+      "stroke-dasharray": s.dash || null, "stroke-linejoin": "miter",
+      "data-eid": String(idx), style: "pointer-events: none;"
+    }, gEdges);
+    var hit = el("path", {
+      d: d, fill: "none", stroke: "transparent", "stroke-width": 12,
+      "data-eid": String(idx), style: "cursor: pointer;"
+    }, gEdges);
+    hit.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selectEdge(idx);
+    });
+    hit.addEventListener("mouseenter", function (ev) {
+      var a = sceneLookup(e.a), b = sceneLookup(e.b);
+      showTip((a && a.label) + " → " + (b && b.label) + " · " + cls, ev);
+    });
+    hit.addEventListener("mouseleave", hideTip);
+  });
+}
+
+function drawBox(n) {
+  var p = posOf(n);
+  if (!p) return;
+  var g = el("g", { "data-id": n.id, "data-inside": n.inside ? "1" : null }, gNodes);
+  g.style.cursor = "pointer";
+  var w = n.w || 140, h = n.h || 40, d = n.d || 10;
+  var ox = d * 0.75, oy = d * 0.45;
+  var x = p.x - w / 2, y = p.y - h / 2;
+  var sel = selected && selected.kind === "node" && selected.id === n.id;
+  var fill = sel ? "#1a1912" : (p.ghost ? "transparent" : "#d8d0b0");
+  var ink = sel ? "#efe8cc" : "#1a1912";
+  var top = [x, y, x + ox, y - oy, x + w + ox, y - oy, x + w, y];
+  var side = [x + w, y, x + w + ox, y - oy, x + w + ox, y + h - oy, x + w, y + h];
+  el("polygon", {
+    points: top[0] + "," + top[1] + " " + top[2] + "," + top[3] + " " + top[4] + "," + top[5] + " " + top[6] + "," + top[7],
+    fill: sel ? "#2a281e" : "#cfc6a4", stroke: ink, "stroke-width": 1,
+    "stroke-dasharray": p.ghost ? "3 2" : null
+  }, g);
+  el("polygon", {
+    points: side[0] + "," + side[1] + " " + side[2] + "," + side[3] + " " + side[4] + "," + side[5] + " " + side[6] + "," + side[7],
+    fill: p.ghost ? "transparent" : "url(#hatch)", stroke: ink, "stroke-width": 1,
+    "stroke-dasharray": p.ghost ? "3 2" : null
+  }, g);
+  el("rect", {
+    x: x, y: y, width: w, height: h, fill: fill, stroke: ink, "stroke-width": 1.2,
+    "stroke-dasharray": p.ghost ? "3 2" : null
+  }, g);
+  var t1 = el("text", {
+    x: p.x, y: p.y + 4, fill: ink, "text-anchor": "middle", "font-size": 11,
+    "font-family": "ui-monospace, Menlo, monospace",
+    style: "font-variant: small-caps; letter-spacing: 0.06em; pointer-events: none;"
+  }, g);
+  t1.textContent = n.label;
+  if (n.inside && !insideOf) {
+    el("text", {
+      x: x + w - 6, y: y + h - 5, fill: ink, "text-anchor": "end", "font-size": 8,
+      "font-family": "ui-monospace, Menlo, monospace",
+      style: "font-variant: small-caps; letter-spacing: 0.08em; pointer-events: none;"
+    }, g).textContent = "IN";
+  }
+  g.addEventListener("click", function (ev) {
+    ev.stopPropagation();
+    selectNode(n.id);
+  });
+  g.addEventListener("dblclick", function (ev) {
+    ev.stopPropagation();
+    if (n.inside && !insideOf) enterInside(n.id);
+  });
+  g.addEventListener("mouseenter", function (ev) {
+    var hint = n.tip || n.label;
+    if (n.inside && !insideOf) hint += " · Go inside to watch it run";
+    showTip(hint, ev);
+  });
+  g.addEventListener("mouseleave", hideTip);
+}
+
+function drawNodes() {
+  while (gNodes.firstChild) gNodes.removeChild(gNodes.firstChild);
+  var order = Object.keys(sceneMap);
+  order.sort(function (a, b) {
+    var pa = posOf(sceneMap[a]), pb = posOf(sceneMap[b]);
+    if (!pa) return 1; if (!pb) return -1;
+    return pa.y - pb.y;
+  });
+  order.forEach(function (id) {
+    if (visible(sceneMap[id])) drawBox(sceneMap[id]);
+  });
+}
+
+function pathFromHops(ids) {
+  var pts = [];
+  ids.forEach(function (id) {
+    var n = sceneLookup(id), p = n && posOf(n);
+    if (p) pts.push(p);
+  });
+  if (pts.length < 2) return "";
+  var d = "M " + pts[0].x + " " + pts[0].y, i;
+  for (i = 1; i < pts.length; i++) {
+    var a = pts[i - 1], b = pts[i];
+    var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (Math.abs(b.y - a.y) > Math.abs(b.x - a.x)) {
+      d += " L " + a.x + " " + my + " L " + b.x + " " + my + " L " + b.x + " " + b.y;
+    } else {
+      d += " L " + mx + " " + a.y + " L " + mx + " " + b.y + " L " + b.x + " " + b.y;
+    }
+  }
+  return d;
+}
+
+function packetLegal(def) {
+  var i;
+  for (i = 0; i < def.hops.length - 1; i++) {
+    if (!hasEdge(def.hops[i], def.hops[i + 1])) return false;
+  }
+  return true;
+}
+
+function spawnPackets() {
+  live.forEach(function (L) {
+    if (L.path && L.path.parentNode) L.path.parentNode.removeChild(L.path);
+  });
+  live = [];
+  var defs = scenePacketList();
+  defs.forEach(function (def, i) {
+    var hops = def.hops || [];
+    if (!hops.every(function (id) { return visible(sceneLookup(id)); })) return;
+    live.push(makeLive(def, hops, i * 0.18));
+    if (def.hopsB && def.hopsB.every(function (id) { return visible(sceneLookup(id)); })) {
+      live.push(makeLive(def, def.hopsB, i * 0.18 + 0.08, true));
+    }
+  });
+  drawDots();
+}
+
+function makeLive(def, hops, phase, twin) {
+  var d = pathFromHops(hops);
+  var probe = el("path", { d: d, fill: "none", opacity: "0", "pointer-events": "none" }, world);
+  var len = probe.getTotalLength ? probe.getTotalLength() : 0;
+  return { def: def, hops: hops, d: d, len: len, t: phase % 1, twin: !!twin, held: false, path: probe };
+}
+
+function drawDots() {
+  while (gDots.firstChild) gDots.removeChild(gDots.firstChild);
+  live.forEach(function (L) {
+    if (!L.len) return;
+    var pt = L.path.getPointAtLength((L.t % 1) * L.len);
+    var sel = pinnedPacket === L.def.id;
+    var fill = "#1a1912";
+    if (L.def.flag === "fixed") fill = "#2a4a32";
+    if (L.def.flag === "violation" || L.def.flag === "desync" || L.def.flag === "bypass" || L.def.flag === "drift") {
+      fill = "#7a2e1c";
+    } else if (!packetLegal(L.def) && L.def.flag !== "fixed") {
+      fill = "#7a2e1c";
+    }
+    el("circle", {
+      cx: pt.x, cy: pt.y, r: sel ? 7 : 5, fill: fill, stroke: "#d8d0b0",
+      "stroke-width": sel ? 2 : 1, style: "pointer-events: none;"
+    }, gDots);
+    var hit = el("circle", {
+      cx: pt.x, cy: pt.y, r: 12, fill: "transparent", style: "cursor: pointer;"
+    }, gDots);
+    hit.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selectPacket(L.def.id);
+    });
+    hit.addEventListener("mouseenter", function (ev) {
+      showTip(L.def.key + " = " + L.def.value, ev);
+    });
+    hit.addEventListener("mouseleave", hideTip);
+  });
+}
+
+function emptyCopy(id) {
+  return !COPY[id] || !COPY[id].what || !COPY[id].how || !COPY[id].source;
+}
+
+function placeholderRe() { return /TODO|TBD|placeholder|lorem|replace me/i; }
+
+function showOverview() {
+  selected = null;
+  pinnedPacket = null;
+  var box = document.getElementById("ibody");
+  if (OVERVIEW.what) {
+    box.innerHTML = "<h3>What this is</h3><p>" + mark(OVERVIEW.what) + "</p>" +
+      (OVERVIEW.how ? "<h3>How to read it</h3><p>" + mark(OVERVIEW.how) + "</p>" : "");
+  } else {
+    box.innerHTML = "<h3>What this is</h3><p>Fill <mark>OVERVIEW</mark> and the <mark>FILL</mark> block from grounded facts.</p>";
+  }
+  paintSelection();
+}
+
+function renderInspector() {
+  var box = document.getElementById("ibody");
+  if (!selected) { showOverview(); return; }
+  if (selected.kind === "packet") {
+    var p = findPacket(selected.id);
+    if (!p) { showOverview(); return; }
+    var legal = packetLegal(p);
+    if (tab === "what") {
+      box.innerHTML =
+        "<h3>Packet</h3>" +
+        "<div class='kv'><div class='k'>Key</div><div><mark>" + esc(p.key) + "</mark></div>" +
+        "<div class='k'>Value</div><div><mark>" + esc(p.value) + "</mark></div>" +
+        "<div class='k'>State</div><div>" + mode.toUpperCase() + "</div>" +
+        "<div class='k'>Legal now</div><div>" + (p.legalNow ? "this path exists" : "this path is a violation") + "</div>" +
+        "<div class='k'>Legal target</div><div>" + (p.legalTgt ? "approved or kept" : "deleted or illegal") + "</div></div>" +
+        (legal ? "" : "<div class='flag'>A hop is not a drawn edge in this state.</div>") +
+        "<p>" + mark(p.note || "") + "</p>" +
+        (p.source ? "<p class='path'>" + esc(p.source) + "</p>" : "");
+    } else {
+      var hops = (p.hopNames || p.hops).map(function (h, i) {
+        return "<li><mark>" + (i + 1) + "</mark> " + esc(h) + "</li>";
+      }).join("");
+      box.innerHTML = "<h3>Route</h3><ul>" + hops + "</ul><p class='path'>Node ids: " + p.hops.join(" → ") + "</p>";
+    }
+    return;
+  }
+  if (selected.kind === "question") {
+    var q = findQuestion(selected.id);
+    if (!q) { showOverview(); return; }
+    box.innerHTML =
+      "<h3>Question</h3>" +
+      "<div class='kv'><div class='k'>Id</div><div>" + esc(q.id) + "</div>" +
+      "<div class='k'>Status</div><div>" + esc(q.status) + "</div>" +
+      (q.status === "resolved"
+        ? "<div class='k'>Decided</div><div>" + esc(q.decidedOn || "") + "</div>"
+        : "") +
+      "</div>" +
+      "<p>" + mark(q.question) + "</p>" +
+      (q.status === "resolved"
+        ? "<div class='ok'>" + mark(q.answer || "") + "</div>"
+        : "<div class='flag'>Open. Record the answer in QUESTIONS when it lands.</div>");
+    return;
+  }
+  if (selected.kind === "edge") {
+    var e = sceneEdgeList()[selected.idx];
+    if (!e) { showOverview(); return; }
+    var cls = classifyEdge(e);
+    var na = sceneLookup(e.a), nb = sceneLookup(e.b);
+    var skip = skippedBands(e).map(function (id) { return LAYER_LABEL[id] || id; });
+    var why = cls === "violation"
+      ? (skip.length ? "Skips " + skip.join(", ") + "." : "Points the wrong way for kind `" + (e.kind || "write") + "`.")
+      : (e.note || "Legal for this kind.");
+    box.innerHTML =
+      "<h3>Edge</h3>" +
+      "<div class='kv'><div class='k'>From</div><div>" + esc(na && na.label) + " · " + esc(LAYER_LABEL[na.layer] || na.layer) + "</div>" +
+      "<div class='k'>To</div><div>" + esc(nb && nb.label) + " · " + esc(LAYER_LABEL[nb.layer] || nb.layer) + "</div>" +
+      "<div class='k'>Class</div><div>" + esc(cls) + "</div></div>" +
+      (cls === "violation" ? "<div class='flag'>" + mark(why) + "</div>" : "<div class='ok'>" + mark(why) + "</div>") +
+      (e.source ? "<p class='path'>" + esc(e.source) + "</p>" : "");
+    return;
+  }
+  var id = selected.id;
+  var n = sceneLookup(id);
+  if (n && n.kind === "stage") {
+    box.innerHTML = "<h3>Stage</h3><p>" + mark(n.tip || "") + "</p>";
+    return;
+  }
+  var c = COPY[id] || {};
+  var p = n && posOf(n);
+  var go = (n && n.inside && !insideOf)
+    ? "<p><button type='button' class='goin' id='btnGoInside'>Go inside</button></p>"
+    : "";
+  if (tab === "what") {
+    var cond = "";
+    if (c.cond && c.cond.length && mode === "current") {
+      cond = "<h3>Condition</h3><ul>" + c.cond.map(function (x) { return "<li>" + mark(x) + "</li>"; }).join("") + "</ul>";
+    } else if (p && p.ghost) {
+      cond = "<h3>Condition</h3><p>Demolished in this state. Dashed ghost marks the old cell.</p>";
+    }
+    var missing = emptyCopy(id) || placeholderRe().test((c.what || "") + (c.how || "") + (c.source || ""));
+    box.innerHTML = "<h3>What this is</h3><p>" + mark(c.what || "Missing COPY.what") + "</p>" + cond +
+      (missing ? "<div class='flag'>Ungrounded or placeholder copy. Do not ship.</div>" : "") + go;
+  } else {
+    box.innerHTML = "<h3>How it is built</h3><p>" + mark(c.how || "Missing COPY.how") + "</p>" +
+      (c.source ? "<p class='path'>" + esc(c.source) + "</p>" : "<p class='path'>Missing COPY.source</p>") + go;
+  }
+  var goBtn = document.getElementById("btnGoInside");
+  if (goBtn) goBtn.onclick = function () { enterInside(id); };
+}
+
+function findPacket(id) {
+  var i;
+  for (i = 0; i < live.length; i++) if (live[i].def.id === id) return live[i].def;
+  return null;
+}
+
+function findQuestion(id) {
+  var list = QUESTIONS || [], i;
+  for (i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+
+function selectNode(id) {
+  pinnedPacket = null;
+  selected = { kind: "node", id: id };
+  renderInspector();
+  paintSelection();
+  paintSide();
+  paintQuestions();
+}
+
+function selectPacket(id) {
+  pinnedPacket = id;
+  selected = { kind: "packet", id: id };
+  live.forEach(function (L) { L.held = L.def.id === id; });
+  renderInspector();
+  paintSelection();
+  paintSide();
+  paintQuestions();
+}
+
+function selectEdge(idx) {
+  pinnedPacket = null;
+  selected = { kind: "edge", idx: idx };
+  live.forEach(function (L) { L.held = false; });
+  renderInspector();
+  paintSelection();
+  paintSide();
+  paintQuestions();
+}
+
+function selectQuestion(id) {
+  pinnedPacket = null;
+  selected = { kind: "question", id: id };
+  live.forEach(function (L) { L.held = false; });
+  renderInspector();
+  paintSelection();
+  paintSide();
+  paintQuestions();
+}
+
+function dismissPin() {
+  pinnedPacket = null;
+  live.forEach(function (L) { L.held = false; });
+  selected = null;
+  renderInspector();
+  paintSelection();
+  paintSide();
+  paintQuestions();
+}
+
+function paintSelection() { drawNodes(); }
+
+function paintSide() {
+  var root = document.getElementById("side");
+  root.innerHTML = "";
+  var groups = SIDE[mode] || [];
+  if (!groups.length) {
+    var byOwner = {};
+    sceneNodeList().forEach(function (n) {
+      if (!visible(n)) return;
+      if (!byOwner[n.owner]) byOwner[n.owner] = [];
+      byOwner[n.owner].push(n.id);
+    });
+    groups = Object.keys(byOwner).map(function (oid) {
+      var o = OWNERS.filter(function (x) { return x.id === oid; })[0];
+      return { h: (o && o.label) || oid, ids: byOwner[oid] };
+    });
+  }
+  groups.forEach(function (g) {
+    var h = document.createElement("h2");
+    h.textContent = g.h;
+    root.appendChild(h);
+    g.ids.forEach(function (id) {
+      var n = sceneLookup(id);
+      if (!n) return;
+      var row = document.createElement("div");
+      if (!visible(n)) return;
+      row.className = "si" + (selected && selected.kind === "node" && selected.id === id ? " on" : "");
+      row.innerHTML = "<span class='tag'>" + esc(n.tag || "·") + "</span><span class='nm'>" + esc(n.label) + "</span>";
+      row.addEventListener("click", function () { selectNode(id); });
+      root.appendChild(row);
+    });
+  });
+}
+
+function paintStats() {
+  var host = document.getElementById("statCells");
+  host.innerHTML = "";
+  var cells = [{ k: "Slice", v: SLICE.title }].concat(STATS);
+  cells.forEach(function (s) {
+    var d = document.createElement("div");
+    d.className = "cell";
+    d.innerHTML = "<span class='k'>" + esc(s.k) + "</span><span class='v'>" + esc(s.v) + "</span>";
+    host.appendChild(d);
+  });
+  var two = SLICE.states.indexOf("target") >= 0;
+  document.getElementById("mode").style.display = two ? "flex" : "none";
+  document.getElementById("btnCur").className = mode === "current" ? "on" : "";
+  document.getElementById("btnTgt").className = mode === "target" ? "on" : "";
+  paintChapters();
+  paintInsideBar();
+}
+
+function paintQuestions() {
+  var host = document.getElementById("qledger");
+  if (!host) return;
+  var list = QUESTIONS || [];
+  if (!list.length) { host.style.display = "none"; host.innerHTML = ""; return; }
+  host.style.display = "block";
+  var html = "<h2>Questions</h2>";
+  list.forEach(function (q) {
+    var on = selected && selected.kind === "question" && selected.id === q.id;
+    html += "<div class='qi" + (q.status === "open" ? " open" : "") + (on ? " on" : "") +
+      "' data-qid='" + esc(q.id) + "'><div class='st'>" +
+      esc(q.status) + (q.status === "resolved" && q.decidedOn ? " · " + esc(q.decidedOn) : "") +
+      "</div>" + esc(q.question) +
+      (q.status === "resolved" && q.answer ? "<div class='path'>" + esc(q.answer) + "</div>" : "") +
+      "</div>";
+  });
+  host.innerHTML = html;
+  Array.prototype.forEach.call(host.querySelectorAll(".qi"), function (row) {
+    row.addEventListener("click", function () { selectQuestion(row.getAttribute("data-qid")); });
+  });
+}
+
+function paintInsideBar() {
+  var bar = document.getElementById("insidebar");
+  var hint = document.getElementById("footHint");
+  if (hint) hint.textContent = insideOf ? "Back leaves the box" : "Go inside a box to watch it run";
+  if (!bar) return;
+  if (!insideOf) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  var n = nodes[insideOf];
+  document.getElementById("insideCrumb").textContent = "Inside · " + ((n && n.label) || insideOf);
+}
+
+function paintChapters() {
+  var bar = document.getElementById("chapters");
+  if (!bar) return;
+  if (!hasChapters()) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  var label = document.getElementById("chLabel");
+  var allBtn = document.getElementById("btnChAll");
+  if (showAllChapters) {
+    label.textContent = "All chapters";
+    allBtn.className = "on";
+  } else {
+    var ch = CHAPTERS[chapterIdx];
+    label.textContent = (chapterIdx + 1) + " / " + CHAPTERS.length + " · " + ((ch && ch.caption) || "");
+    allBtn.className = "";
+  }
+}
+
+var tipEl = typeof document !== "undefined" ? document.getElementById("tip") : null;
+function showTip(text, ev) {
+  if (!text || !tipEl) return;
+  tipEl.textContent = text;
+  tipEl.style.display = "block";
+  moveTip(ev);
+}
+function moveTip(ev) {
+  tipEl.style.left = (ev.clientX + 12) + "px";
+  tipEl.style.top = (ev.clientY + 12) + "px";
+}
+function hideTip() { tipEl.style.display = "none"; }
+
+function applyCam() {
+  world.setAttribute("transform", "translate(" + cam.x + "," + cam.y + ") scale(" + cam.k + ")");
+}
+
+function fitCam() {
+  var wrap = document.getElementById("stagewrap");
+  var vw = wrap.clientWidth, vh = wrap.clientHeight, pad = 24;
+  var fw = sceneW() + 120, fh = sceneH() + 20;
+  cam.k = Math.min((vw - pad * 2) / fw, (vh - pad * 2) / fh);
+  cam.x = (vw - fw * cam.k) / 2 + 20;
+  cam.y = (vh - fh * cam.k) / 2 + 8;
+  applyCam();
+}
+
+function zoomAt(factor, cx, cy) {
+  var k = Math.max(0.25, Math.min(3.2, cam.k * factor));
+  var r = svg.getBoundingClientRect();
+  var sx = cx - r.left, sy = cy - r.top;
+  var wx = (sx - cam.x) / cam.k, wy = (sy - cam.y) / cam.k;
+  cam.k = k;
+  cam.x = sx - wx * cam.k;
+  cam.y = sy - wy * cam.k;
+  applyCam();
+}
+
+function rebuild() {
+  bootScene();
+  if (typeof document === "undefined" || !world) return;
+  drawBands();
+  drawEdges();
+  drawNodes();
+  spawnPackets();
+  paintSide();
+  paintStats();
+  paintQuestions();
+  renderInspector();
+}
+
+function enterInside(id) {
+  var n = nodes[id];
+  if (!n || !n.inside) return false;
+  if (!insideOf) savedCam = { x: cam.x, y: cam.y, k: cam.k };
+  insideOf = id;
+  pinnedPacket = null;
+  selected = null;
+  rebuild();
+  if (typeof document !== "undefined" && world) fitCam();
+  return true;
+}
+
+function exitInside() {
+  if (!insideOf) return;
+  insideOf = null;
+  pinnedPacket = null;
+  selected = null;
+  rebuild();
+  if (savedCam) {
+    cam.x = savedCam.x;
+    cam.y = savedCam.y;
+    cam.k = savedCam.k;
+    savedCam = null;
+    if (typeof document !== "undefined" && world) applyCam();
+  }
+}
+
+function setChapter(i, all) {
+  showAllChapters = !!all;
+  if (!showAllChapters) {
+    chapterIdx = Math.max(0, Math.min(chapterList().length - 1, i));
+  }
+  pinnedPacket = null;
+  selected = null;
+  rebuild();
+}
+
+function setMode(m) {
+  if (SLICE.states.indexOf(m) < 0) return;
+  mode = m;
+  pinnedPacket = null;
+  selected = null;
+  rebuild();
+  fitCam();
+}
+
+function isHit(t) {
+  while (t && t !== svg) {
+    if (t.getAttribute && (t.getAttribute("data-id") || t.getAttribute("data-eid") || t.getAttribute("data-pid"))) return true;
+    t = t.parentNode;
+  }
+  return false;
+}
+
+function bind() {
+  document.getElementById("btnCur").onclick = function () { setMode("current"); };
+  document.getElementById("btnTgt").onclick = function () { setMode("target"); };
+  document.getElementById("btnFlow").onclick = function () {
+    flowOn = !flowOn;
+    this.textContent = flowOn ? "Hold the flow" : "Resume the flow";
+    this.className = flowOn ? "" : "on";
+    if (flowOn) live.forEach(function (L) { if (L.def.id !== pinnedPacket) L.held = false; });
+  };
+  document.getElementById("btnStep").onclick = function () {
+    live.forEach(function (L) { if (L.len) L.t = (L.t + 0.12) % 1; });
+    drawDots();
+  };
+  document.getElementById("btnReset").onclick = function () { fitCam(); };
+  document.getElementById("btnChPrev").onclick = function () {
+    if (showAllChapters) setChapter(chapterIdx, false);
+    else setChapter(chapterIdx - 1, false);
+  };
+  document.getElementById("btnChNext").onclick = function () {
+    if (showAllChapters) setChapter(chapterIdx, false);
+    else setChapter(chapterIdx + 1, false);
+  };
+  document.getElementById("btnChAll").onclick = function () { setChapter(chapterIdx, true); };
+  document.getElementById("btnInsideBack").onclick = function () { exitInside(); };
+  document.getElementById("zIn").onclick = function () {
+    var r = svg.getBoundingClientRect();
+    zoomAt(1.2, r.left + r.width / 2, r.top + r.height / 2);
+  };
+  document.getElementById("zOut").onclick = function () {
+    var r = svg.getBoundingClientRect();
+    zoomAt(1 / 1.2, r.left + r.width / 2, r.top + r.height / 2);
+  };
+  document.getElementById("tabWhat").onclick = function () {
+    tab = "what";
+    this.className = "on";
+    document.getElementById("tabHow").className = "";
+    renderInspector();
+  };
+  document.getElementById("tabHow").onclick = function () {
+    tab = "how";
+    this.className = "on";
+    document.getElementById("tabWhat").className = "";
+    renderInspector();
+  };
+  svg.addEventListener("wheel", function (ev) {
+    ev.preventDefault();
+    zoomAt(ev.deltaY < 0 ? 1.08 : 1 / 1.08, ev.clientX, ev.clientY);
+  }, { passive: false });
+  svg.addEventListener("pointerdown", function (ev) {
+    if (ev.button !== 0) return;
+    drag.on = true; drag.moved = false; drag.lx = ev.clientX; drag.ly = ev.clientY;
+    svg.classList.add("drag");
+    svg.setPointerCapture(ev.pointerId);
+  });
+  svg.addEventListener("pointermove", function (ev) {
+    if (tipEl.style.display === "block") moveTip(ev);
+    if (!drag.on) return;
+    var dx = ev.clientX - drag.lx, dy = ev.clientY - drag.ly;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    cam.x += dx; cam.y += dy;
+    drag.lx = ev.clientX; drag.ly = ev.clientY;
+    applyCam();
+  });
+  svg.addEventListener("pointerup", function (ev) {
+    svg.classList.remove("drag");
+    if (drag.on && !drag.moved && !isHit(ev.target)) dismissPin();
+    drag.on = false;
+  });
+  window.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") {
+      if (selected) dismissPin();
+      else if (insideOf) exitInside();
+    }
+    if (ev.key === " ") { ev.preventDefault(); document.getElementById("btnFlow").click(); }
+  });
+  window.addEventListener("resize", fitCam);
+}
+
+function emitMarkdown() {
+  var savedIn = insideOf;
+  insideOf = null;
+  bootNodes();
+  bootScene();
+  var lines = [];
+  function push(s) { lines.push(s); }
+  push("# " + SLICE.title);
+  push("");
+  if (OVERVIEW.what) { push(OVERVIEW.what); push(""); }
+  if (OVERVIEW.how) { push(OVERVIEW.how); push(""); }
+  push("## Stats");
+  ([{ k: "Slice", v: SLICE.title }].concat(STATS)).forEach(function (s) {
+    push("- " + s.k + ": " + s.v);
+  });
+  push("");
+  push("## Layers");
+  SLICE.layers.forEach(function (id) { push("- " + (LAYER_LABEL[id] || id)); });
+  push("");
+  push("## Owners");
+  OWNERS.forEach(function (o) { push("- " + o.id + ": " + o.label); });
+  push("");
+  push("## Nodes");
+  NODES.forEach(function (n) {
+    var c = COPY[n.id] || {};
+    push("### " + n.label);
+    push("- id: " + n.id);
+    push("- layer: " + (LAYER_LABEL[n.layer] || n.layer));
+    push("- owner: " + n.owner);
+    push("- what: " + (c.what || ""));
+    push("- how: " + (c.how || ""));
+    push("- source: " + (c.source || ""));
+    if (c.cond && c.cond.length) {
+      push("- condition:");
+      c.cond.forEach(function (x) { push("  - " + x); });
+    }
+    if (n.inside) {
+      var inn = n.inside;
+      push("#### Inside");
+      if (isStages(inn)) {
+        push("- shape: stages");
+        inn.stages.forEach(function (s) {
+          push("- " + s.label + ". " + (s.what || ""));
+        });
+      } else if (isMini(inn)) {
+        push("- shape: graph");
+        inn.nodes.forEach(function (sn) {
+          push("- " + sn.id + " " + (LAYER_LABEL[sn.layer] || sn.layer) + " " + (sn.label || ""));
+        });
+        (inn.edges || []).forEach(function (e) {
+          push("- " + e.a + " -> " + e.b + " (" + (e.kind || "write") + ")");
+        });
+      }
+      var ips = n.insidePackets || [];
+      if (ips.length) {
+        push("##### Inside packets");
+        ips.forEach(function (p) {
+          push("- " + p.id + " " + p.key + "=" + p.value + " " + (p.hops || []).join(" -> ") +
+            (p.source ? " " + p.source : ""));
+        });
+      }
+    }
+    push("");
+  });
+  push("## Edges");
+  EDGES.forEach(function (e) {
+    push("- " + e.a + " -> " + e.b + " (" + (e.kind || "write") + ") " + classifyEdge(e) +
+      (e.source ? " " + e.source : "") +
+      (e.modes ? " [" + e.modes.join(",") + "]" : ""));
+  });
+  push("");
+  push("## Packets");
+  ["current", "target"].forEach(function (st) {
+    var list = (PACKETS && PACKETS[st]) || [];
+    if (!list.length) return;
+    push("### " + st);
+    list.forEach(function (p) {
+      push("- " + p.id + " " + p.key + "=" + p.value + " " + (p.hops || []).join(" -> ") +
+        (p.source ? " " + p.source : ""));
+    });
+    push("");
+  });
+  push("## Questions");
+  (QUESTIONS || []).forEach(function (q) {
+    var head = "### " + q.id + " (" + q.status;
+    if (q.status === "resolved" && q.decidedOn) head += ", " + q.decidedOn;
+    head += ")";
+    push(head);
+    push(q.question);
+    if (q.status === "resolved") {
+      push("");
+      push("Answer. " + (q.answer || ""));
+    }
+    push("");
+  });
+  if (hasChapters()) {
+    push("## Chapters");
+    CHAPTERS.forEach(function (ch) {
+      push("### " + ch.caption);
+      push((ch.nodes || []).join(", "));
+      push("");
+    });
+  }
+  insideOf = savedIn;
+  if (savedIn) bootScene();
+  return lines.join("\n").replace(/\n+$/, "") + "\n";
+}
+
+function check() {
+  var savedIn = insideOf;
+  insideOf = null;
+  bootNodes();
+  bootScene();
+  var errs = [], ph = placeholderRe();
+  if (!SLICE.layers.length) errs.push("SLICE.layers empty");
+  if (SLICE.layers[SLICE.layers.length - 1] !== "platform") errs.push("last band must be platform");
+  NODES.forEach(function (n) {
+    if (!n.layer || SLICE.layers.indexOf(n.layer) < 0) errs.push(n.id + " missing or unknown layer");
+    if (!n.owner) errs.push(n.id + " missing owner");
+    if (emptyCopy(n.id)) errs.push(n.id + " missing COPY what/how/source");
+    var c = COPY[n.id] || {};
+    if (ph.test((c.what || "") + (c.how || "") + (c.source || ""))) errs.push(n.id + " placeholder copy");
+    if (n.inside) {
+      var inn = n.inside;
+      var st = isStages(inn), mn = isMini(inn);
+      if (st && mn) errs.push(n.id + " inside must pick stages or nodes, not both");
+      if (!st && !mn) errs.push(n.id + " inside is empty");
+      if (st) {
+        inn.stages.forEach(function (s) {
+          if (!s.id || !s.label || !s.what) errs.push(n.id + " stage missing id/label/what");
+        });
+      }
+      if (mn) {
+        var nest = {};
+        inn.nodes.forEach(function (sn) {
+          nest[sn.id] = true;
+          if (!sn.layer || SLICE.layers.indexOf(sn.layer) < 0) errs.push(sn.id + " nested missing or unknown layer");
+          if (!sn.owner) errs.push(sn.id + " nested missing owner");
+        });
+        (inn.edges || []).forEach(function (e) {
+          if (!nest[e.a] || !nest[e.b]) errs.push(n.id + " nested edge missing endpoint");
+        });
+      }
+      (n.insidePackets || []).forEach(function (p) {
+        if (ph.test((p.key || "") + (p.value || ""))) errs.push(p.id + " placeholder payload");
+        var hi;
+        for (hi = 0; hi < (p.hops || []).length - 1; hi++) {
+          var hopOk;
+          if (st) {
+            var sids = inn.stages.map(function (s) { return s.id; });
+            hopOk = sids.indexOf(p.hops[hi + 1]) === sids.indexOf(p.hops[hi]) + 1;
+          } else {
+            hopOk = (inn.edges || []).some(function (e) {
+              return e.a === p.hops[hi] && e.b === p.hops[hi + 1];
+            });
+          }
+          if (!hopOk) errs.push(p.id + " inside hop " + p.hops[hi] + " -> " + p.hops[hi + 1] + " is not an inside edge");
+        }
+      });
+    }
+  });
+  EDGES.forEach(function (e, i) {
+    if (!nodes[e.a] || !nodes[e.b]) errs.push("edge " + i + " missing endpoint");
+  });
+  ["current", "target"].forEach(function (st) {
+    (PACKETS[st] || []).forEach(function (p) {
+      if (ph.test((p.key || "") + (p.value || ""))) errs.push(p.id + " placeholder payload");
+      var i;
+      for (i = 0; i < p.hops.length - 1; i++) {
+        var ok = EDGES.some(function (e) {
+          var modes = e.modes || SLICE.states;
+          return e.a === p.hops[i] && e.b === p.hops[i + 1] && modes.indexOf(st) >= 0;
+        });
+        if (!ok) errs.push(p.id + " hop " + p.hops[i] + " → " + p.hops[i + 1] + " is not an edge in " + st);
+      }
+    });
+  });
+  (QUESTIONS || []).forEach(function (q) {
+    if (!q.id || !q.question) errs.push((q.id || "?") + " question missing id or text");
+    if (q.status !== "open" && q.status !== "resolved") errs.push(q.id + " status must be open or resolved");
+    if (q.status === "resolved" && (!q.answer || !q.decidedOn)) errs.push(q.id + " resolved row needs answer and decidedOn");
+  });
+  chapterList().forEach(function (ch) {
+    (ch.nodes || []).forEach(function (id) {
+      if (!nodes[id]) errs.push("chapter " + ch.id + " unknown node " + id);
+    });
+  });
+  insideOf = savedIn;
+  if (savedIn) bootScene();
+  return { ok: errs.length === 0, errors: errs };
+}
+
+function tick(ts) {
+  if (!tick.last) tick.last = ts;
+  var dt = Math.min(40, ts - tick.last);
+  tick.last = ts;
+  if (flowOn) {
+    var changed = false;
+    live.forEach(function (L) {
+      if (L.held || !L.len) return;
+      L.t = (L.t + dt * 0.000055) % 1;
+      changed = true;
+    });
+    if (changed) drawDots();
+  }
+  requestAnimationFrame(tick);
+}
+
+var root = typeof window !== "undefined" ? window : globalThis;
+if (SLICE.states.indexOf("current") < 0) mode = SLICE.states[0];
+if (typeof location !== "undefined" && location.hash === "#target" && SLICE.states.indexOf("target") >= 0) {
+  mode = "target";
+}
+bootNodes();
+bootScene();
+if (typeof document !== "undefined") {
+  initSvg();
+  bind();
+  fitCam();
+  rebuild();
+  requestAnimationFrame(tick);
+}
+root.__ARCH = function () {
+  return {
+    mode: mode,
+    layers: SLICE.layers.slice(),
+    nodes: sceneNodeList().filter(function (n) { return visible(n); }).length,
+    packets: live.length,
+    chapter: showAllChapters ? "all" : chapterIdx,
+    inside: insideOf,
+    selected: selected,
+    check: check()
+  };
+};
+root.__ARCH.check = check;
+root.__ARCH.markdown = emitMarkdown;
+root.__ARCH.setChapter = setChapter;
+root.__ARCH.enterInside = enterInside;
+root.__ARCH.exitInside = exitInside;
+root.__ARCH.cam = function () { return { x: cam.x, y: cam.y, k: cam.k }; };
+root.__ARCH.sceneIds = function () { return Object.keys(sceneMap); };
+root.__ARCH.visibleIds = function () {
+  return sceneNodeList().filter(function (n) { return visible(n); }).map(function (n) { return n.id; });
+};
+root.__ARCH.chapterProof = function () {
+  var savedIn = insideOf;
+  insideOf = null;
+  bootScene();
+  var first = root.__ARCH.visibleIds();
+  var bound = typeof CHAPTERS !== "undefined";
+  var saved = bound ? CHAPTERS : [];
+  if (bound) CHAPTERS = [];
+  var absent = root.__ARCH.visibleIds();
+  if (bound) CHAPTERS = saved;
+  var all = NODES.filter(function (n) { return statePos(n) != null; }).map(function (n) { return n.id; });
+  insideOf = savedIn;
+  if (savedIn) bootScene();
+  return { firstChapter: first, absent: absent, allState: all };
+};
+root.__ARCH.insideProof = function () {
+  if (insideOf) exitInside();
+  var host = null;
+  NODES.forEach(function (n) { if (!host && n.inside) host = n.id; });
+  var parked = { x: cam.x + 37, y: cam.y + 19, k: 1.17 };
+  cam.x = parked.x; cam.y = parked.y; cam.k = parked.k;
+  var okEnter = enterInside(host);
+  var enteredIds = Object.keys(sceneMap);
+  var packetCount = live.length;
+  var crumb = "";
+  if (typeof document !== "undefined") {
+    var elc = document.getElementById("insideCrumb");
+    crumb = elc ? elc.textContent : "";
+  }
+  exitInside();
+  return {
+    host: host,
+    entered: !!(okEnter && enteredIds.length),
+    sceneIds: enteredIds,
+    packets: packetCount,
+    crumb: crumb,
+    cameraRestored: cam.x === parked.x && cam.y === parked.y && cam.k === parked.k,
+    absentInside: NODES.filter(function (n) { return !n.inside; }).map(function (n) { return n.id; })
+  };
+};
+})();
+</script>
+</body>
+</html>
